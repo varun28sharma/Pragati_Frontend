@@ -21,7 +21,7 @@ export default function PragatiLanding() {
   const router = useRouter();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [scrollY, setScrollY] = useState(0);
-  const [activeRole, setActiveRole] = useState(null);
+  const [activeRole, setActiveRole] = useState<string | null>(null);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [publicNotices, setPublicNotices] = useState<PublicNotice[]>([]);
