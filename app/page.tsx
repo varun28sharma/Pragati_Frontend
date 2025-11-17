@@ -1,21 +1,116 @@
 'use client';
 
 import Image from 'next/image';
-import { useState, useEffect, useRef } from 'react';
-import { ChevronRight, Menu, X, BookOpen, Users, BarChart3, Shield, Zap, ChevronLeft, ChevronDown } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useState, useEffect, useRef, type FormEvent } from 'react';
+import { ChevronRight, Menu, X, BookOpen, Users, BarChart3, Shield, Zap, ChevronLeft, ChevronDown, Search } from 'lucide-react';
+
+type PublicNotice = {
+  id: string;
+  schoolId?: string;
+  title: string;
+  body: string;
+  category?: string;
+  priority?: number;
+  isPublic?: boolean;
+  activeFrom?: string;
+  activeTill?: string;
+};
 
 export default function PragatiLanding() {
+  const router = useRouter();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [scrollY, setScrollY] = useState(0);
   const [activeRole, setActiveRole] = useState(null);
-  const noticesRef = useRef(null);
-  const bannersRef = useRef(null);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [publicNotices, setPublicNotices] = useState<PublicNotice[]>([]);
+  const [isNoticesLoading, setIsNoticesLoading] = useState(false);
+  const [noticeError, setNoticeError] = useState<string | null>(null);
+  const bannersRef = useRef<HTMLDivElement | null>(null);
+  const heroRef = useRef<HTMLElement | null>(null);
+  const rolesRef = useRef<HTMLElement | null>(null);
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
+  const backendUrl = (process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://localhost:4000').replace(/\/$/, '');
+  const notificationsUrl = `${backendUrl}/api/communications/notifications/public`;
+
+  const scrollWithOffset = (element: HTMLElement, offset: number) => {
+    const elementTop = element.getBoundingClientRect().top + window.scrollY;
+    window.scrollTo({ top: Math.max(elementTop - offset, 0), behavior: 'smooth' });
+    element.focus({ preventScroll: true });
+  };
 
   useEffect(() => {
     const handleScroll = () => setScrollY(window.scrollY);
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  useEffect(() => {
+    if (!isSearchOpen) {
+      return;
+    }
+    const timer = window.setTimeout(() => searchInputRef.current?.focus(), 50);
+    return () => window.clearTimeout(timer);
+  }, [isSearchOpen]);
+
+  useEffect(() => {
+    if (!isSearchOpen) {
+      return;
+    }
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsSearchOpen(false);
+        setSearchQuery('');
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isSearchOpen]);
+
+  useEffect(() => {
+    if (isSearchOpen) {
+      const original = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = original;
+      };
+    }
+    document.body.style.overflow = '';
+  }, [isSearchOpen]);
+
+  useEffect(() => {
+    let isMounted = true;
+    const controller = new AbortController();
+    const fetchNotices = async () => {
+      setIsNoticesLoading(true);
+      try {
+        const response = await fetch(notificationsUrl, { signal: controller.signal });
+        if (!response.ok) {
+          throw new Error('Failed to load notices');
+        }
+        const data = await response.json();
+        if (isMounted) {
+          setPublicNotices(Array.isArray(data?.items) ? data.items : []);
+          setNoticeError(null);
+        }
+      } catch (error) {
+        if (isMounted && (error as Error).name !== 'AbortError') {
+          setNoticeError('Unable to load notices right now.');
+        }
+      } finally {
+        if (isMounted) {
+          setIsNoticesLoading(false);
+        }
+      }
+    };
+
+    fetchNotices();
+    return () => {
+      isMounted = false;
+      controller.abort();
+    };
+  }, [notificationsUrl]);
 
   const roles = [
     {
@@ -46,14 +141,6 @@ export default function PragatiLanding() {
       description: 'Access compliance reports',
       color: 'from-purple-500 to-pink-500',
     },
-  ];
-
-  const notices = [
-    { id: 1, title: 'System Maintenance', date: 'Nov 20, 2025', icon: '🔧' },
-    { id: 2, title: 'New Features Released', date: 'Nov 18, 2025', icon: '✨' },
-    { id: 3, title: 'Mid-day Meal Report Due', date: 'Nov 15, 2025', icon: '🍽️' },
-    { id: 4, title: 'Academic Calendar Update', date: 'Nov 10, 2025', icon: '📅' },
-    { id: 5, title: 'Scholarship Submission Deadline', date: 'Nov 8, 2025', icon: '🎓' },
   ];
 
   const governmentPrograms = [
@@ -108,6 +195,125 @@ export default function PragatiLanding() {
     { icon: <Users className="w-6 h-6" />, title: 'Multi-Role Access', desc: 'Role-based dashboards' },
   ];
 
+  const searchTargets = [
+    {
+      id: 'hero',
+      label: 'Overview & Get Started',
+      description: 'Return to the hero banner and CTA',
+      keywords: ['home', 'top', 'overview', 'start'],
+      offset: 120,
+    },
+    {
+      id: 'roles',
+      label: 'Role-Based Access',
+      description: 'Jump to role-specific dashboards',
+      keywords: ['login', 'roles', 'access'],
+      offset: 150,
+    },
+    {
+      id: 'features',
+      label: 'Key Features',
+      description: 'See why Pragati works for rural schools',
+      keywords: ['benefits', 'features', 'why'],
+      offset: 150,
+    },
+    {
+      id: 'notices',
+      label: 'Updates & Notices',
+      description: 'Latest announcements and deadlines',
+      keywords: ['updates', 'news', 'notices'],
+      offset: 150,
+    },
+    {
+      id: 'programs',
+      label: 'Government Programs',
+      description: 'Explore flagship education initiatives',
+      keywords: ['schemes', 'programs', 'government'],
+      offset: 150,
+    },
+    {
+      id: 'contact',
+      label: 'Contact & Support',
+      description: 'Reach out for help or information',
+      keywords: ['contact', 'support', 'help'],
+      offset: 150,
+    },
+  ];
+
+  const scrollToSection = (section: 'hero' | 'roles') => {
+    const targetRef = section === 'hero' ? heroRef : rolesRef;
+    const offset = section === 'hero' ? 120 : 150;
+    if (targetRef.current) {
+      scrollWithOffset(targetRef.current, offset);
+      return;
+    }
+    const fallbackId = section === 'hero' ? 'hero' : 'roles';
+    const element = document.getElementById(fallbackId);
+    if (element) {
+      scrollWithOffset(element, offset);
+    }
+  };
+
+  const scrollToId = (targetId: string, offset = 150) => {
+    const element = document.getElementById(targetId);
+    if (element) {
+      scrollWithOffset(element, offset);
+    }
+  };
+
+  const handleSearchSelect = (targetId: string, offset = 150) => {
+    scrollToId(targetId, offset);
+    setIsSearchOpen(false);
+    setSearchQuery('');
+    setIsMenuOpen(false);
+  };
+
+  const normalizedQuery = searchQuery.trim().toLowerCase();
+  const filteredTargets = searchTargets.filter((target) => {
+    if (!normalizedQuery) {
+      return true;
+    }
+    const haystack = `${target.label} ${target.description}`.toLowerCase();
+    const keywordMatch = target.keywords?.some((keyword) => keyword.toLowerCase().includes(normalizedQuery));
+    return haystack.includes(normalizedQuery) || Boolean(keywordMatch);
+  });
+  const visibleTargets = filteredTargets.slice(0, 6);
+
+  const handleSearchSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const firstMatch = visibleTargets[0];
+    if (firstMatch) {
+      handleSearchSelect(firstMatch.id, firstMatch.offset);
+    }
+  };
+
+  const formatDate = (value?: string) => {
+    if (!value) return '—';
+    try {
+      return new Intl.DateTimeFormat('en-IN', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+        hour: 'numeric',
+        minute: 'numeric',
+      }).format(new Date(value));
+    } catch {
+      return value;
+    }
+  };
+
+  const handlePrimaryNavigation = () => {
+    const isAtTop = scrollY <= 10;
+    if (isAtTop) {
+      scrollToSection('roles');
+    } else {
+      scrollToSection('hero');
+    }
+    setIsSearchOpen(false);
+    setSearchQuery('');
+    setIsMenuOpen(false);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-slate-100 dark:from-slate-950 dark:via-blue-950 dark:to-slate-900 overflow-x-hidden">
       {/* Government Header */}
@@ -119,7 +325,7 @@ export default function PragatiLanding() {
           </div>
           <div className="flex items-center gap-4">
             <button 
-              onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+              onClick={handlePrimaryNavigation}
               className="hidden sm:inline cursor-pointer hover:opacity-80 transition"
             >
               Skip to main content
@@ -141,10 +347,10 @@ export default function PragatiLanding() {
               <Image
                 src="/pragati-logo.png"
                 alt="Pragati e-Punjab School logo"
-                width={64}
-                height={64}
+                width={80}
+                height={80}
                 priority
-                className="w-10 h-10 sm:w-12 sm:h-12 object-contain drop-shadow"
+                className="w-12 h-12 sm:w-16 sm:h-16 object-contain drop-shadow"
               />
               <div className="hidden sm:block">
                 <div className="text-sm font-bold text-gray-700 dark:text-gray-300">Pragati</div>
@@ -175,12 +381,26 @@ export default function PragatiLanding() {
 
             {/* Right Actions */}
             <div className="flex items-center gap-4">
-              <button className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition">
-                🔍
+              <button
+                onClick={() => {
+                  setIsSearchOpen((prev) => !prev);
+                  setIsMenuOpen(false);
+                }}
+                aria-label="Search sections"
+                aria-expanded={isSearchOpen}
+                className={`p-2 rounded-lg transition border border-transparent hover:border-primary/30 ${
+                  isSearchOpen ? 'bg-primary/10 text-primary' : 'hover:bg-gray-100 dark:hover:bg-gray-800'
+                }`}
+              >
+                <Search className="w-5 h-5" />
               </button>
-              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-red-400 to-red-500 rounded-full flex items-center justify-center text-white cursor-pointer font-bold">
+              <button
+                type="button"
+                onClick={() => router.push('/roles')}
+                className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-red-400 to-red-500 rounded-full flex items-center justify-center text-white cursor-pointer font-bold hover:shadow-lg hover:shadow-red-400/40 transition"
+              >
                 👤
-              </div>
+              </button>
               <button
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
                 className="md:hidden p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition"
@@ -207,9 +427,84 @@ export default function PragatiLanding() {
         </div>
       </nav>
 
+      {isSearchOpen && (
+        <>
+          <div
+            className="fixed inset-0 z-30 bg-black/30 backdrop-blur-sm"
+            onClick={() => {
+              setIsSearchOpen(false);
+              setSearchQuery('');
+            }}
+            aria-hidden="true"
+          />
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Section search"
+            className="fixed inset-x-4 top-[7.5rem] sm:top-32 sm:inset-auto sm:right-8 sm:left-auto z-50 w-auto sm:w-[420px] max-h-[80vh] overflow-hidden bg-white/95 dark:bg-slate-900/95 border border-white/30 dark:border-white/10 rounded-3xl shadow-2xl transition-transform duration-300 ease-out"
+          >
+            <form onSubmit={handleSearchSubmit} className="p-4 border-b border-white/20 dark:border-white/10 space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Quick search</p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsSearchOpen(false);
+                    setSearchQuery('');
+                  }}
+                  className="text-xs font-semibold text-primary hover:underline"
+                >
+                  Close
+                </button>
+              </div>
+              <label htmlFor="section-search" className="sr-only">
+                Search sections
+              </label>
+              <div className="flex items-center gap-2 bg-white/80 dark:bg-slate-800/80 px-3 py-2 rounded-2xl">
+                <Search className="w-4 h-4 text-primary" />
+                <input
+                  ref={searchInputRef}
+                  id="section-search"
+                  type="text"
+                  value={searchQuery}
+                  onChange={(event) => setSearchQuery(event.target.value)}
+                  placeholder="Search for sections..."
+                  className="w-full bg-transparent text-sm outline-none placeholder:text-gray-500"
+                />
+              </div>
+            </form>
+            <div className="max-h-[60vh] overflow-y-auto">
+              {visibleTargets.length === 0 ? (
+                <p className="p-4 text-sm text-muted-foreground">No sections match that search.</p>
+              ) : (
+                visibleTargets.map((target, idx) => (
+                  <button
+                    key={target.id}
+                    type="button"
+                    onClick={() => handleSearchSelect(target.id, target.offset)}
+                    className={`w-full text-left px-4 py-3 flex items-center justify-between gap-3 transition ${
+                      idx % 2 === 0 ? 'bg-white/60 dark:bg-white/5' : 'bg-white/40 dark:bg-white/0'
+                    } hover:bg-primary/10`}
+                  >
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">{target.label}</p>
+                      <p className="text-xs text-muted-foreground">{target.description}</p>
+                    </div>
+                    <span className="text-xs font-semibold text-primary">Jump</span>
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+        </>
+      )}
+
       {/* Hero Section */}
       <section
-        className="relative min-h-screen flex items-center justify-center pt-32 sm:pt-40 pb-20 overflow-hidden"
+        id="hero"
+        ref={heroRef}
+        tabIndex={-1}
+        className="relative min-h-screen flex items-center justify-center pt-32 sm:pt-40 pb-20 overflow-hidden scroll-mt-32 sm:scroll-mt-40"
         style={{
           backgroundImage:
             'radial-gradient(circle at 20% 50%, rgba(59, 130, 246, 0.1) 0%, transparent 50%)',
@@ -248,7 +543,10 @@ export default function PragatiLanding() {
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
-              <button className="glass-light px-8 py-3 rounded-lg font-semibold text-primary hover:bg-white/50 dark:hover:bg-white/15 transition group">
+              <button
+                onClick={handlePrimaryNavigation}
+                className="glass-light px-8 py-3 rounded-lg font-semibold text-primary hover:bg-white/50 dark:hover:bg-white/15 transition group"
+              >
                 Get Started <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition inline-block ml-2" />
               </button>
               <button className="px-8 py-3 bg-accent text-accent-foreground rounded-lg font-semibold hover:shadow-lg hover:shadow-accent/30 transition">
@@ -260,7 +558,12 @@ export default function PragatiLanding() {
       </section>
 
       {/* Role-Based Access Section */}
-      <section id="roles" className="py-12 sm:py-16 px-4 sm:px-6 lg:px-8 relative z-20 bg-white/30 dark:bg-white/5 backdrop-blur-lg">
+      <section
+        id="roles"
+        ref={rolesRef}
+        tabIndex={-1}
+        className="py-12 sm:py-16 px-4 sm:px-6 lg:px-8 relative z-20 bg-white/30 dark:bg-white/5 backdrop-blur-lg scroll-mt-40"
+      >
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-8 sm:mb-12">
             <h2 className="text-2xl sm:text-3xl font-bold mb-2">
@@ -309,7 +612,11 @@ export default function PragatiLanding() {
         </div>
       </section>
 
-      <section id="features" className="py-12 sm:py-16 px-4 sm:px-6 lg:px-8">
+      <section
+        id="features"
+        tabIndex={-1}
+        className="py-12 sm:py-16 px-4 sm:px-6 lg:px-8 scroll-mt-40"
+      >
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-8 sm:mb-12">
             <h2 className="text-2xl sm:text-3xl font-bold mb-3">
@@ -337,61 +644,66 @@ export default function PragatiLanding() {
         </div>
       </section>
 
-      <section id="notices" className="py-12 sm:py-16 px-4 sm:px-6 lg:px-8 bg-white/40 dark:bg-white/5 backdrop-blur-lg">
+      <section
+        id="notices"
+        tabIndex={-1}
+        className="py-12 sm:py-16 px-4 sm:px-6 lg:px-8 bg-white/40 dark:bg-white/5 backdrop-blur-lg scroll-mt-40"
+      >
         <div className="max-w-6xl mx-auto">
-          <div className="mb-8 sm:mb-10">
-            <h2 className="text-2xl sm:text-3xl font-bold mb-1">Latest Updates</h2>
-            <p className="text-sm sm:text-base text-muted-foreground">Join our notification hub to stay up to date</p>
+          <div className="mb-6 sm:mb-8 flex items-center justify-between gap-3">
+            <div>
+              <h2 className="text-2xl sm:text-3xl font-bold mb-1">Latest Updates</h2>
+              <p className="text-sm sm:text-base text-muted-foreground">Verified notices from the Pragati backend</p>
+            </div>
+            <span className="hidden sm:inline text-[11px] text-muted-foreground">Showing up to 5 active notices</span>
           </div>
-          
-          <div className="relative">
-            <button
-              onClick={() => window.scrollBy({ left: -400, behavior: 'smooth' })}
-              className="absolute -left-4 sm:left-0 top-1/2 -translate-y-1/2 z-10 hidden sm:flex items-center justify-center w-10 h-10 bg-white dark:bg-gray-800 rounded-full shadow-lg hover:shadow-xl transition"
-            >
-              <ChevronLeft className="w-5 h-5" />
-            </button>
 
-            <div
-              ref={noticesRef}
-              className="flex gap-4 overflow-x-auto pb-4 scroll-smooth snap-x snap-mandatory"
-              style={{ scrollBehavior: 'smooth', WebkitOverflowScrolling: 'touch' }}
-            >
-              {notices.map((notice) => (
-                <div
-                  key={notice.id}
-                  className="glass flex-shrink-0 w-full sm:w-96 snap-start p-4 sm:p-6 rounded-2xl border border-white/30 hover:border-accent/50 transition group cursor-pointer hover:shadow-lg hover:shadow-accent/20"
-                >
-                  <div className="flex items-start gap-4">
-                    <div className="text-3xl flex-shrink-0">{notice.icon}</div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-2 mb-2">
-                        <h3 className="font-bold text-base sm:text-lg group-hover:text-primary transition">{notice.title}</h3>
-                      </div>
-                      <span className="text-xs text-muted-foreground">{notice.date}</span>
-                      <p className="text-xs sm:text-sm text-muted-foreground mt-2">Important update regarding system and policy changes.</p>
-                    </div>
-                  </div>
-                </div>
-              ))}
+          <div className="glass rounded-2xl border border-white/40 p-4 sm:p-5 flex flex-col max-w-3xl">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Campus notices</p>
+                <h3 className="text-sm sm:text-base font-semibold">Digital board</h3>
+              </div>
+              <span className="text-[10px] font-bold text-emerald-500 bg-emerald-500/10 px-2 py-1 rounded-full">Live</span>
             </div>
 
-            <button
-              onClick={() => window.scrollBy({ left: 400, behavior: 'smooth' })}
-              className="absolute -right-4 sm:right-0 top-1/2 -translate-y-1/2 z-10 hidden sm:flex items-center justify-center w-10 h-10 bg-white dark:bg-gray-800 rounded-full shadow-lg hover:shadow-xl transition"
-            >
-              <ChevronRight className="w-5 h-5" />
-            </button>
-          </div>
-
-          <div className="sm:hidden text-center text-xs text-gray-500 dark:text-gray-400 mt-4">
-            Swipe to see more updates
+            {isNoticesLoading ? (
+              <p className="text-sm text-muted-foreground">Loading updates...</p>
+            ) : noticeError ? (
+              <p className="text-sm text-red-500">{noticeError}</p>
+            ) : publicNotices.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No public notices right now. Check back soon.</p>
+            ) : (
+              <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
+                {publicNotices.slice(0, 5).map((notice) => (
+                  <div key={notice.id} className="rounded-xl border border-white/30 p-3 bg-white/70 dark:bg-slate-900/50">
+                    <div className="flex items-center justify-between gap-3 mb-1.5">
+                      <h4 className="font-semibold text-xs sm:text-sm truncate">{notice.title}</h4>
+                      {notice.priority ? (
+                        <span className="text-[10px] font-semibold text-amber-600 bg-amber-100 px-2 py-0.5 rounded-full">
+                          Priority {notice.priority}
+                        </span>
+                      ) : null}
+                    </div>
+                    <p className="text-[11px] text-muted-foreground leading-snug line-clamp-2">{notice.body}</p>
+                    <div className="text-[10px] text-muted-foreground flex items-center justify-between mt-1.5">
+                      <span>{formatDate(notice.activeFrom)}</span>
+                      {notice.schoolId ? <span>School #{notice.schoolId}</span> : null}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </section>
 
       {/* Government Programs Section */}
-      <section id="programs" className="py-12 sm:py-16 px-4 sm:px-6 lg:px-8 bg-white/50 dark:bg-white/5 backdrop-blur-sm">
+      <section
+        id="programs"
+        tabIndex={-1}
+        className="py-12 sm:py-16 px-4 sm:px-6 lg:px-8 bg-white/50 dark:bg-white/5 backdrop-blur-sm scroll-mt-40"
+      >
         <div className="max-w-7xl mx-auto">
           <div className="mb-8 sm:mb-10">
             <h2 className="text-2xl sm:text-3xl font-bold mb-2">Government Programs & Schemes</h2>
@@ -447,7 +759,11 @@ export default function PragatiLanding() {
       </section>
 
       {/* Footer */}
-      <footer id="contact" className="border-t border-white/20 bg-white/30 dark:bg-white/5 backdrop-blur-lg py-8 sm:py-12 px-4 sm:px-6 lg:px-8">
+      <footer
+        id="contact"
+        tabIndex={-1}
+        className="border-t border-white/20 bg-white/30 dark:bg-white/5 backdrop-blur-lg py-8 sm:py-12 px-4 sm:px-6 lg:px-8 scroll-mt-40"
+      >
         <div className="max-w-6xl mx-auto">
           <div className="grid md:grid-cols-4 gap-6 sm:gap-8 mb-6 sm:mb-8">
             <div>
@@ -455,9 +771,9 @@ export default function PragatiLanding() {
                   <Image
                     src="/pragati-logo.png"
                     alt="Pragati e-Punjab School logo"
-                    width={40}
-                    height={40}
-                    className="w-8 h-8 object-contain drop-shadow"
+                    width={56}
+                    height={56}
+                    className="w-12 h-12 object-contain drop-shadow"
                   />
                   <span className="font-bold text-sm sm:text-base">Pragati</span>
                 </div>

@@ -20,6 +20,18 @@ pnpm dev
 
 The development server runs with `next dev` (default port 3000). Use `pnpm build` for a production build and `pnpm start` to serve the built output. Tailwind CSS classes are compiled through the Next.js 16 PostCSS/Tailwind v4 pipeline as configured in `postcss.config.mjs`.
 
+### Environment variables
+
+Copy `.env.local.example` to `.env.local` and adjust as needed:
+
+```powershell
+Copy-Item .env.local.example .env.local
+```
+
+- `NEXT_PUBLIC_BACKEND_URL` — API origin for real-time notices (defaults to `http://localhost:4000`). The app automatically calls `/api/communications/notifications/public` relative to this base URL.
+
+The client-side updates section reads these values to fetch announcements.
+
 ## Notes
 
 - TypeScript path aliases use the `@/*` pattern defined in `tsconfig.json`.
