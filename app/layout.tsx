@@ -9,23 +9,10 @@ const _geistMono = Geist_Mono({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: 'Pragati - Smart School Attendance System',
   description: 'Transform rural education with intelligent attendance tracking. Empowering students, teachers, and administrators with real-time insights and analytics.',
-  generator: 'v0.app',
   icons: {
-    icon: [
-      {
-        url: '/icon-light-32x32.png',
-        media: '(prefers-color-scheme: light)',
-      },
-      {
-        url: '/icon-dark-32x32.png',
-        media: '(prefers-color-scheme: dark)',
-      },
-      {
-        url: '/icon.svg',
-        type: 'image/svg+xml',
-      },
-    ],
-    apple: '/apple-icon.png',
+    icon: '/pragati-logo.png',
+    shortcut: '/pragati-logo.png',
+    apple: '/pragati-logo.png',
   },
 }
 
