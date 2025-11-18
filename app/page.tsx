@@ -21,6 +21,7 @@ export default function PragatiLanding() {
   const router = useRouter();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [scrollY, setScrollY] = useState(0);
+  const [heroGlow, setHeroGlow] = useState<{ x: number; y: number } | null>(null);
   const [activeRole, setActiveRole] = useState<string | null>(null);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -44,6 +45,30 @@ export default function PragatiLanding() {
     const handleScroll = () => setScrollY(window.scrollY);
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  useEffect(() => {
+    const heroElement = heroRef.current;
+    if (!heroElement) return;
+
+    const handleMouseMove = (event: MouseEvent) => {
+      const rect = heroElement.getBoundingClientRect();
+      const x = event.clientX - rect.left;
+      const y = event.clientY - rect.top;
+      setHeroGlow({ x, y });
+    };
+
+    const handleMouseLeave = () => {
+      setHeroGlow(null);
+    };
+
+    heroElement.addEventListener('mousemove', handleMouseMove);
+    heroElement.addEventListener('mouseleave', handleMouseLeave);
+
+    return () => {
+      heroElement.removeEventListener('mousemove', handleMouseMove);
+      heroElement.removeEventListener('mouseleave', handleMouseLeave);
+    };
   }, []);
 
   useEffect(() => {
@@ -314,6 +339,26 @@ export default function PragatiLanding() {
     setIsMenuOpen(false);
   };
 
+  const handleRoleLogin = (roleId: string) => {
+    setActiveRole(roleId);
+    switch (roleId) {
+      case 'student':
+        router.push('/login/student');
+        break;
+      case 'teacher':
+        router.push('/login/teacher');
+        break;
+      case 'principal':
+        router.push('/login/principal');
+        break;
+      case 'government':
+        router.push('/login/government');
+        break;
+      default:
+        router.push('/roles');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-slate-100 dark:from-slate-950 dark:via-blue-950 dark:to-slate-900 overflow-x-hidden">
       {/* Government Header */}
@@ -524,12 +569,23 @@ export default function PragatiLanding() {
             className="absolute w-72 h-72 bg-accent/20 rounded-full blur-3xl animate-pulse-slow"
             style={{ bottom: '10%', left: '50%', animationDelay: '4s' }}
           />
+          {heroGlow && (
+            <div
+              className="absolute w-80 h-80 bg-gradient-to-br from-primary/30 via-accent/20 to-transparent rounded-full blur-3xl opacity-60 transition-transform duration-150 ease-out"
+              style={{
+                transform: `translate3d(${heroGlow.x - 160}px, ${heroGlow.y - 160}px, 0)`,
+              }}
+            />
+          )}
         </div>
 
         <div className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <div className="space-y-6 animate-in fade-in duration-1000">
-            <div className="inline-block glass px-4 py-2 rounded-full">
-              <span className="text-sm font-semibold text-primary">Government Education Initiative</span>
+            <div className="inline-flex items-center justify-center px-5 py-2 rounded-full border border-white/30 bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl shadow-sm shadow-primary/10 hover:shadow-primary/30 transition-all duration-200 hover:-translate-y-0.5">
+              <span className="relative text-sm font-semibold text-primary">
+                <span className="absolute inset-0 rounded-full bg-white/40 opacity-0 group-hover:opacity-100 transition-opacity" />
+                <span className="relative">Government Education Initiative</span>
+              </span>
             </div>
 
             <h1 className="text-4xl sm:text-5xl lg:text-7xl font-bold tracking-tight">
@@ -545,7 +601,7 @@ export default function PragatiLanding() {
             <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
               <button
                 onClick={handlePrimaryNavigation}
-                className="glass-light px-8 py-3 rounded-lg font-semibold text-primary hover:bg-white/50 dark:hover:bg-white/15 transition group"
+                className="px-8 py-3 rounded-xl font-semibold text-primary bg-white/70 dark:bg-slate-900/70 border border-white/60 backdrop-blur-xl shadow-sm shadow-primary/10 hover:shadow-primary/40 hover:-translate-y-0.5 transition-all duration-200 group"
               >
                 Get Started <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition inline-block ml-2" />
               </button>
@@ -576,10 +632,15 @@ export default function PragatiLanding() {
 
           <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
             {roles.map((role) => (
-              <div
+              <button
                 key={role.id}
-                onClick={() => setActiveRole(activeRole === role.id ? null : role.id)}
-                className={`glass rounded-lg border border-gray-200 dark:border-gray-700 transition cursor-pointer overflow-hidden ${
+                type="button"
+                onMouseEnter={() => setActiveRole(role.id)}
+                onFocus={() => setActiveRole(role.id)}
+                onMouseLeave={() => setActiveRole(null)}
+                onBlur={() => setActiveRole(null)}
+                onClick={() => handleRoleLogin(role.id)}
+                className={`rounded-2xl border border-white/40 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-200 cursor-pointer overflow-hidden ${
                   activeRole === role.id
                     ? 'border-accent/50 bg-gradient-to-br ' + role.color + '/10 shadow-lg shadow-accent/20'
                     : 'border-gray-200 dark:border-gray-700 hover:border-accent/30'
@@ -596,17 +657,17 @@ export default function PragatiLanding() {
                   <p className="text-xs text-muted-foreground mb-3">{role.description}</p>
                   
                   {/* Login Button inside card */}
-                  <button
+                  <div
                     className={`w-full px-2 sm:px-3 py-2 rounded-lg font-semibold text-xs transition group ${
                       activeRole === role.id
                         ? `bg-gradient-to-r ${role.color} text-white shadow-lg`
-                        : 'glass-light hover:bg-white/50 dark:hover:bg-white/15 border border-white/30'
+                        : 'bg-white/70 dark:bg-slate-900/70 border border-white/40 hover:bg-white/90 dark:hover:bg-slate-900/90 backdrop-blur-xl'
                     }`}
                   >
                     Login <ChevronRight className="w-3 h-3 group-hover:translate-x-1 transition inline-block ml-1" />
-                  </button>
+                  </div>
                 </div>
-              </div>
+              </button>
             ))}
           </div>
         </div>
@@ -631,7 +692,7 @@ export default function PragatiLanding() {
             {features.map((feature, idx) => (
               <div
                 key={idx}
-                className="glass-light p-3 sm:p-4 rounded-lg border border-white/30 hover:border-white/50 transition group hover:shadow-lg hover:shadow-primary/10"
+                className="rounded-2xl p-3 sm:p-4 border border-white/40 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl transition-all duration-200 hover:border-white/70 hover:-translate-y-1 hover:shadow-lg hover:shadow-primary/20 group"
               >
                 <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-primary to-accent rounded-lg flex items-center justify-center text-white mb-2 sm:mb-3 group-hover:scale-110 transition text-sm">
                   {feature.icon}
@@ -658,7 +719,7 @@ export default function PragatiLanding() {
             <span className="hidden sm:inline text-[11px] text-muted-foreground">Showing up to 5 active notices</span>
           </div>
 
-          <div className="glass rounded-2xl border border-white/40 p-4 sm:p-5 flex flex-col max-w-3xl">
+          <div className="rounded-2xl border border-white/50 bg-white/70 dark:bg-slate-900/70 backdrop-blur-2xl p-4 sm:p-5 flex flex-col max-w-xl sm:max-w-2xl shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-200">
             <div className="flex items-center justify-between mb-3">
               <div>
                 <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Campus notices</p>
