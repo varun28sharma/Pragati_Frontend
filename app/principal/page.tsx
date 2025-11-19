@@ -24,6 +24,7 @@ import {
   School,
   GraduationCap,
   BookOpen,
+  UserPlus,
 } from 'lucide-react';
 
 interface DashboardStats {
@@ -151,6 +152,54 @@ export default function PrincipalDashboard() {
       icon: Calendar,
       gradient: 'from-emerald-500 to-teal-500',
       href: '/principal/timetables',
+    },
+    {
+      id: 'academics',
+      title: 'Academic Setup',
+      description: 'Manage grades, sections, and subjects',
+      icon: BookOpen,
+      gradient: 'from-violet-500 to-purple-500',
+      href: '/principal/academics',
+    },
+    {
+      id: 'classrooms',
+      title: 'Manage Classrooms',
+      description: 'Create and manage classroom assignments',
+      icon: School,
+      gradient: 'from-pink-500 to-purple-500',
+      href: '/principal/classrooms',
+    },
+    {
+      id: 'students',
+      title: 'Manage Students',
+      description: 'Add, edit, and manage student records',
+      icon: GraduationCap,
+      gradient: 'from-cyan-500 to-blue-500',
+      href: '/principal/students',
+    },
+    {
+      id: 'teachers',
+      title: 'Manage Teachers',
+      description: 'Add, edit, and manage teacher records',
+      icon: Users,
+      gradient: 'from-amber-500 to-orange-500',
+      href: '/principal/teachers',
+    },
+    {
+      id: 'enrollment',
+      title: 'Enrollment',
+      description: 'Assign teachers, enroll students, manage groups',
+      icon: UserPlus,
+      gradient: 'from-indigo-500 to-blue-500',
+      href: '/principal/enrollment',
+    },
+    {
+      id: 'users',
+      title: 'User Logins',
+      description: 'Create student & teacher login accounts',
+      icon: UserPlus,
+      gradient: 'from-rose-500 to-pink-500',
+      href: '/principal/users',
     },
   ];
 

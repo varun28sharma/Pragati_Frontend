@@ -54,6 +54,13 @@ interface TimetableResponse {
   entries: TimetableEntry[];
 }
 
+interface Subject {
+  id: string;
+  code: string;
+  name: string;
+  schoolId: string;
+}
+
 const WEEKDAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const PERIODS = [1, 2, 3, 4, 5, 6, 7, 8];
 
@@ -62,6 +69,7 @@ export default function TimetablesPage() {
   const [classrooms, setClassrooms] = useState<Classroom[]>([]);
   const [selectedClassroom, setSelectedClassroom] = useState<string>('');
   const [timetable, setTimetable] = useState<TimetableEntry[]>([]);
+  const [subjects, setSubjects] = useState<Subject[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -90,8 +98,24 @@ export default function TimetablesPage() {
 
       setPrincipalName(name);
       fetchClassrooms(token);
+      fetchSubjects(token);
     }
   }, [router]);
+
+  const fetchSubjects = async (token: string) => {
+    try {
+      const backendUrl = (process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://localhost:4000').replace(/\/$/, '');
+      const response = await fetch(`${backendUrl}/api/core/subjects`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!response.ok) throw new Error('Failed to fetch subjects');
+      const data = await response.json();
+      setSubjects(data);
+    } catch (err: any) {
+      console.error('Error fetching subjects:', err);
+    }
+  };
 
   const fetchClassrooms = async (token: string) => {
     setIsLoading(true);
@@ -145,11 +169,15 @@ export default function TimetablesPage() {
     }
   };
 
-  const handleClassroomChange = (classroomId: string) => {
+  const handleClassroomChange = async (classroomId: string) => {
     setSelectedClassroom(classroomId);
-    const token = localStorage.getItem('pragati_token');
-    if (token) {
-      fetchTimetable(token, classroomId);
+    if (classroomId) {
+      const token = localStorage.getItem('pragati_token');
+      if (token) {
+        await fetchTimetable(token, classroomId);
+      }
+    } else {
+      setTimetable([]);
     }
     setIsEditing(false);
     setEditingEntry(null);
@@ -220,25 +248,34 @@ export default function TimetablesPage() {
       const token = localStorage.getItem('pragati_token');
       const backendUrl = (process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://localhost:4000').replace(/\/$/, '');
 
+      // Strip IDs from entries before sending
+      const entriesToSave = timetable.map(({ id, teacher, subject, ...entry }) => entry);
+
       const response = await fetch(`${backendUrl}/api/timetables/classrooms/${selectedClassroom}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ entries: timetable }),
+        body: JSON.stringify({ entries: entriesToSave }),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to save timetable');
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to save timetable');
       }
+
+      const result = await response.json();
+      console.log('Timetable saved successfully:', result);
 
       // Refresh timetable
       if (token) {
         await fetchTimetable(token, selectedClassroom);
       }
-    } catch (err) {
-      setError('Failed to save timetable. Please try again.');
+
+      alert(`Timetable saved successfully! Total entries: ${result.totalEntries || timetable.length}`);
+    } catch (err: any) {
+      setError(err.message || 'Failed to save timetable. Please try again.');
       console.error('Error saving timetable:', err);
     } finally {
       setIsSaving(false);
@@ -485,14 +522,45 @@ export default function TimetablesPage() {
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-muted-foreground mb-2">Subject/Label</label>
+                <label className="block text-sm font-medium text-muted-foreground mb-2">
+                  Subject
+                </label>
+                <select
+                  value={formData.label}
+                  onChange={(e) => {
+                    setFormData({
+                      ...formData,
+                      label: e.target.value,
+                    });
+                  }}
+                  className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                >
+                  <option value="">Select a subject or enter custom</option>
+                  {subjects.map((subject) => (
+                    <option key={subject.id} value={subject.name}>
+                      {subject.name}
+                    </option>
+                  ))}
+                </select>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Select from available subjects or type a custom label below
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-muted-foreground mb-2">
+                  Custom Label (optional)
+                </label>
                 <input
                   type="text"
                   value={formData.label}
                   onChange={(e) => setFormData({ ...formData, label: e.target.value })}
-                  placeholder="e.g., Mathematics"
+                  placeholder="e.g., Mathematics, Break, Advisory"
                   className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                 />
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Override with a custom label if needed
+                </p>
               </div>
 
               <div className="grid grid-cols-2 gap-4">

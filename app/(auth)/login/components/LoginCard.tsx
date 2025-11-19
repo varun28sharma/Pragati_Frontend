@@ -69,6 +69,9 @@ export function LoginCard({ role, title, subtitle, redirectPath }: LoginCardProp
         localStorage.setItem('pragati_token', data.token);
         localStorage.setItem('pragati_role', data.role);
         localStorage.setItem('pragati_userId', data.userId);
+        if (data.schoolId) {
+          localStorage.setItem('pragati_schoolId', data.schoolId);
+        }
         // Use email entered as display name fallback until richer profile available
         localStorage.setItem('pragati_name', email);
       }

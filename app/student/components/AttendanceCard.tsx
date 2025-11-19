@@ -1,8 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { ClipboardCheck, TrendingUp, Calendar, AlertCircle } from 'lucide-react';
+import { ClipboardCheck, TrendingUp, Calendar, AlertCircle, ArrowRight } from 'lucide-react';
 
 interface AttendanceSummary {
   studentId: string;
@@ -37,6 +38,7 @@ interface AttendanceCardProps {
 }
 
 export function AttendanceCard({ language }: AttendanceCardProps) {
+  const router = useRouter();
   const [attendanceData, setAttendanceData] = useState<AttendanceSummary | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -225,7 +227,7 @@ export function AttendanceCard({ language }: AttendanceCardProps) {
       </div>
 
       {/* Overall Summary */}
-      <div className="flex items-center justify-between text-xs">
+      <div className="flex items-center justify-between text-xs mb-4">
         <span className="text-muted-foreground">
           Total: {attendanceData.overall.total} days
         </span>
@@ -233,6 +235,15 @@ export function AttendanceCard({ language }: AttendanceCardProps) {
           Present: {attendanceData.overall.present}
         </span>
       </div>
+
+      {/* View Details Button */}
+      <button
+        onClick={() => router.push('/student/attendance')}
+        className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 text-sm font-medium transition"
+      >
+        View Detailed History
+        <ArrowRight className="w-4 h-4" />
+      </button>
     </motion.div>
   );
 }
