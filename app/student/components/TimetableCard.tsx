@@ -49,7 +49,7 @@ export function TimetableCard({ language }: TimetableCardProps) {
 
     try {
       const token = localStorage.getItem('pragati_token');
-      const studentId = localStorage.getItem('pragati_userId');
+      const studentId = localStorage.getItem('pragati_studentId');
 
       if (!token || !studentId) {
         setError('Authentication required');
@@ -64,6 +64,12 @@ export function TimetableCard({ language }: TimetableCardProps) {
         }
       );
 
+      if (response.status === 404) {
+        // No timetable set up yet - this is normal
+        setTimetableData(null);
+        return;
+      }
+
       if (!response.ok) {
         throw new Error('Failed to fetch timetable');
       }
@@ -72,7 +78,7 @@ export function TimetableCard({ language }: TimetableCardProps) {
       setTimetableData(data);
     } catch (err) {
       console.error('Error fetching timetable:', err);
-      setError('Unable to load timetable');
+      setError('Timetable will appear once your class schedule is set up');
     } finally {
       setIsLoading(false);
     }

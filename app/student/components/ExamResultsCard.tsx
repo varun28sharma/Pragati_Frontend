@@ -34,7 +34,7 @@ export function ExamResultsCard({ language }: ExamResultsCardProps) {
 
     try {
       const token = localStorage.getItem('pragati_token');
-      const studentId = localStorage.getItem('pragati_userId');
+      const studentId = localStorage.getItem('pragati_studentId');
 
       if (!token || !studentId) {
         setError('Authentication required');
@@ -49,6 +49,12 @@ export function ExamResultsCard({ language }: ExamResultsCardProps) {
         }
       );
 
+      if (response.status === 404) {
+        // No exam results yet - this is normal for new students
+        setExamResults([]);
+        return;
+      }
+
       if (!response.ok) {
         throw new Error('Failed to fetch exam results');
       }
@@ -57,7 +63,7 @@ export function ExamResultsCard({ language }: ExamResultsCardProps) {
       setExamResults(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error('Error fetching exam results:', err);
-      setError('Unable to load exam results');
+      setError('Exam results will appear once they are published');
     } finally {
       setIsLoading(false);
     }

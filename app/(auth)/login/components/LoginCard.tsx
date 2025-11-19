@@ -69,6 +69,15 @@ export function LoginCard({ role, title, subtitle, redirectPath }: LoginCardProp
         localStorage.setItem('pragati_token', data.token);
         localStorage.setItem('pragati_role', data.role);
         localStorage.setItem('pragati_userId', data.userId);
+        
+        // Store studentId or teacherId for role-specific APIs
+        if (data.studentId) {
+          localStorage.setItem('pragati_studentId', data.studentId);
+        }
+        if (data.teacherId) {
+          localStorage.setItem('pragati_teacherId', data.teacherId);
+        }
+        
         if (data.schoolId) {
           localStorage.setItem('pragati_schoolId', data.schoolId);
         }

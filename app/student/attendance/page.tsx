@@ -80,7 +80,7 @@ export default function StudentAttendancePage() {
     setError(null);
 
     try {
-      const studentId = localStorage.getItem('pragati_userId');
+      const studentId = localStorage.getItem('pragati_studentId');
       if (!studentId) throw new Error('Student ID not found');
 
       const backendUrl = (process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://localhost:4000').replace(/\/$/, '');

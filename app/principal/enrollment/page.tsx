@@ -67,6 +67,20 @@ interface StudentGroup {
   members: Array<{ studentId: string }>;
 }
 
+interface StudentEnrollment {
+  id: string;
+  studentId: string;
+  teacherSubjectId: string;
+  status: string;
+  enrolledOn: string;
+  student?: { firstName: string; lastName: string; code: string };
+  teacherSubject?: {
+    subject?: { name: string; code: string };
+    teacher?: { firstName: string; lastName: string };
+    classroom?: { grade: { name: string }; section: { label: string } };
+  };
+}
+
 type TabType = 'teacher-subjects' | 'student-subjects' | 'groups';
 
 export default function EnrollmentManagementPage() {
@@ -77,6 +91,7 @@ export default function EnrollmentManagementPage() {
   const [classrooms, setClassrooms] = useState<Classroom[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [teacherSubjects, setTeacherSubjects] = useState<TeacherSubject[]>([]);
+  const [studentEnrollments, setStudentEnrollments] = useState<StudentEnrollment[]>([]);
   const [studentGroups, setStudentGroups] = useState<StudentGroup[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -133,7 +148,7 @@ export default function EnrollmentManagementPage() {
     try {
       const backendUrl = (process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://localhost:4000').replace(/\/$/, '');
 
-      const [teachersRes, subjectsRes, classroomsRes, studentsRes, groupsRes, teacherSubjectsRes] = await Promise.all([
+      const [teachersRes, subjectsRes, classroomsRes, studentsRes, groupsRes, teacherSubjectsRes, studentEnrollmentsRes] = await Promise.all([
         fetch(`${backendUrl}/api/core/teachers`, {
           headers: { Authorization: `Bearer ${token}` },
         }),
@@ -152,6 +167,9 @@ export default function EnrollmentManagementPage() {
         fetch(`${backendUrl}/api/enrollment/teacher-subjects`, {
           headers: { Authorization: `Bearer ${token}` },
         }),
+        fetch(`${backendUrl}/api/enrollment/student-subjects`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
       ]);
 
       const teachersData = await teachersRes.json();
@@ -160,6 +178,7 @@ export default function EnrollmentManagementPage() {
       const studentsData = await studentsRes.json();
       const groupsData = await groupsRes.json();
       const teacherSubjectsData = teacherSubjectsRes.ok ? await teacherSubjectsRes.json() : [];
+      const studentEnrollmentsData = studentEnrollmentsRes.ok ? await studentEnrollmentsRes.json() : [];
 
       setTeachers(Array.isArray(teachersData) ? teachersData : []);
       setSubjects(Array.isArray(subjectsData) ? subjectsData : []);
@@ -167,6 +186,7 @@ export default function EnrollmentManagementPage() {
       setStudents(Array.isArray(studentsData) ? studentsData : []);
       setStudentGroups(Array.isArray(groupsData) ? groupsData : []);
       setTeacherSubjects(Array.isArray(teacherSubjectsData) ? teacherSubjectsData : []);
+      setStudentEnrollments(Array.isArray(studentEnrollmentsData) ? studentEnrollmentsData : []);
 
       // Get schoolId from localStorage or from the data
       const storedSchoolId = localStorage.getItem('pragati_schoolId');
@@ -659,12 +679,85 @@ export default function EnrollmentManagementPage() {
 
           {/* Student-Subjects Tab */}
           {!isLoading && !error && activeTab === 'student-subjects' && (
-            <div className="rounded-2xl border border-white/40 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl p-6">
-              <p className="text-sm text-muted-foreground text-center">
-                Student enrollments will be displayed here once created.
-                <br />
-                Click "Enroll Student" to add a student to a subject.
-              </p>
+            <div className="rounded-2xl border border-white/40 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl overflow-hidden">
+              <div className="p-6 border-b border-white/40">
+                <h3 className="text-lg font-semibold">Student Enrollments</h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {studentEnrollments.length} enrollment{studentEnrollments.length !== 1 ? 's' : ''} found
+                </p>
+              </div>
+
+              {studentEnrollments.length === 0 ? (
+                <div className="p-12 text-center">
+                  <UserPlus className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-sm text-muted-foreground">
+                    No student enrollments yet.
+                    <br />
+                    Click "Enroll Student" to add a student to a subject.
+                  </p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-white/50 dark:bg-slate-800/50">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Student</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Subject</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Teacher</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Classroom</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Enrolled On</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/40">
+                      {studentEnrollments.map((enrollment) => (
+                        <tr key={enrollment.id} className="hover:bg-white/30 dark:hover:bg-slate-800/30 transition">
+                          <td className="px-4 py-3 text-sm">
+                            {enrollment.student ? (
+                              <div>
+                                <div className="font-medium">
+                                  {enrollment.student.firstName} {enrollment.student.lastName}
+                                </div>
+                                <div className="text-xs text-muted-foreground">{enrollment.student.code}</div>
+                              </div>
+                            ) : 'N/A'}
+                          </td>
+                          <td className="px-4 py-3 text-sm">
+                            {enrollment.teacherSubject?.subject ? (
+                              <div>
+                                <div className="font-medium">{enrollment.teacherSubject.subject.name}</div>
+                                <div className="text-xs text-muted-foreground">{enrollment.teacherSubject.subject.code}</div>
+                              </div>
+                            ) : 'N/A'}
+                          </td>
+                          <td className="px-4 py-3 text-sm">
+                            {enrollment.teacherSubject?.teacher
+                              ? `${enrollment.teacherSubject.teacher.firstName} ${enrollment.teacherSubject.teacher.lastName}`
+                              : 'N/A'}
+                          </td>
+                          <td className="px-4 py-3 text-sm">
+                            {enrollment.teacherSubject?.classroom
+                              ? `${enrollment.teacherSubject.classroom.grade.name} - ${enrollment.teacherSubject.classroom.section.label}`
+                              : 'N/A'}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-muted-foreground">
+                            {new Date(enrollment.enrolledOn).toLocaleDateString()}
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                              enrollment.status === 'active'
+                                ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                                : 'bg-gray-500/10 text-gray-600 dark:text-gray-400'
+                            }`}>
+                              {enrollment.status}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           )}
 
@@ -875,10 +968,21 @@ export default function EnrollmentManagementPage() {
                     className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                   >
                     <option value="">Select assignment</option>
-                    <option value="placeholder" disabled>
-                      Create teacher assignments first
-                    </option>
+                    {teacherSubjects.length === 0 ? (
+                      <option value="" disabled>
+                        No teacher assignments available - create one first
+                      </option>
+                    ) : (
+                      teacherSubjects.map((ts) => (
+                        <option key={ts.id} value={ts.id}>
+                          {ts.subject?.name || 'Unknown Subject'} - {ts.teacher?.firstName || ''} {ts.teacher?.lastName || ''} ({ts.classroom?.grade?.name || ''} {ts.classroom?.section?.label || ''})
+                        </option>
+                      ))
+                    )}
                   </select>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Select which subject/teacher combination to enroll the student in
+                  </p>
                 </div>
 
                 <div>

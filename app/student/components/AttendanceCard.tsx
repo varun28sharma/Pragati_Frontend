@@ -53,7 +53,7 @@ export function AttendanceCard({ language }: AttendanceCardProps) {
 
     try {
       const token = localStorage.getItem('pragati_token');
-      const studentId = localStorage.getItem('pragati_userId');
+      const studentId = localStorage.getItem('pragati_studentId');
 
       if (!token || !studentId) {
         setError('Authentication required');
@@ -68,6 +68,12 @@ export function AttendanceCard({ language }: AttendanceCardProps) {
         }
       );
 
+      if (response.status === 404) {
+        // No attendance data yet - this is normal for new students
+        setAttendanceData(null);
+        return;
+      }
+
       if (!response.ok) {
         throw new Error('Failed to fetch attendance data');
       }
@@ -76,7 +82,7 @@ export function AttendanceCard({ language }: AttendanceCardProps) {
       setAttendanceData(data);
     } catch (err) {
       console.error('Error fetching attendance:', err);
-      setError('Unable to load attendance data');
+      setError('Attendance data will appear once your teacher starts marking attendance');
     } finally {
       setIsLoading(false);
     }

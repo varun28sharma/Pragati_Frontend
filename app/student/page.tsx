@@ -38,7 +38,7 @@ export default function StudentDashboard() {
     if (typeof window !== 'undefined') {
       const token = localStorage.getItem('pragati_token');
       const role = localStorage.getItem('pragati_role');
-      const studentId = localStorage.getItem('pragati_userId');
+      const studentId = localStorage.getItem('pragati_studentId');
 
       if (!token || role !== 'STUDENT') {
         router.push('/login/student');
@@ -265,7 +265,7 @@ export default function StudentDashboard() {
               <h2 className="text-2xl sm:text-3xl font-bold mb-2">
                 {t.goodMorning}, <span className="gradient-text">{studentProfile?.firstName || 'Student'}</span>
               </h2>
-              {studentProfile && (
+              {studentProfile?.classroom && (
                 <p className="text-sm sm:text-base text-muted-foreground">
                   {studentProfile.classroom.grade.name} - {studentProfile.classroom.section.label} · Roll No: {studentProfile.code}
                 </p>
