@@ -6,6 +6,7 @@ export default function TeacherLoginPage() {
       role="TEACHER"
       title="Teacher sign in"
       subtitle="Mark attendance and review class analytics."
+      redirectPath="/teacher"
     />
   );
 }

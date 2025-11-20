@@ -647,7 +647,7 @@ export default function PragatiLanding() {
                 }`}
               >
                 {/* Icon and basic info */}
-                <div className="p-3 sm:p-4">
+                <div className="p-3 sm:p-4 flex flex-col items-center text-center">
                   <div
                     className={`w-10 h-10 sm:w-12 sm:h-12 rounded-lg flex items-center justify-center mb-3 bg-gradient-to-br ${role.color} text-white flex-shrink-0`}
                   >
@@ -692,7 +692,7 @@ export default function PragatiLanding() {
             {features.map((feature, idx) => (
               <div
                 key={idx}
-                className="rounded-2xl p-3 sm:p-4 border border-white/40 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl transition-all duration-200 hover:border-white/70 hover:-translate-y-1 hover:shadow-lg hover:shadow-primary/20 group"
+                className="rounded-2xl p-3 sm:p-4 border border-white/40 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl transition-all duration-200 hover:border-white/70 hover:-translate-y-1 hover:shadow-lg hover:shadow-primary/20 group flex flex-col items-center text-center"
               >
                 <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-primary to-accent rounded-lg flex items-center justify-center text-white mb-2 sm:mb-3 group-hover:scale-110 transition text-sm">
                   {feature.icon}

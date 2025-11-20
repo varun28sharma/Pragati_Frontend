@@ -6,6 +6,7 @@ export default function GovernmentLoginPage() {
       role="GOVERNMENT"
       title="Government sign in"
       subtitle="View district-wide reports and scheme analytics."
+      redirectPath="/government"
     />
   );
 }
